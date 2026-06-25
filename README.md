@@ -8,7 +8,6 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 </div>
 
@@ -51,6 +50,7 @@ IncidentFlow/
 │   │   ├── schemas/
 │   │   └── main.py
 │   └── requirements.txt
+├── frontend/
 ├── docker-compose.yml
 └── README.md
 ```
@@ -150,12 +150,6 @@ Navigate to <http://127.0.0.1:8000/docs>
 - [ ] Advanced Search & Filtering
 - [ ] Unit & Integration Tests
 - [ ] Production Deployment (Docker + Nginx)
-
------
-
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
 
 -----
 
