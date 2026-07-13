@@ -78,6 +78,8 @@ def create_ticket(
         title=ticket_data.title,
         description=ticket_data.description,
         priority=ticket_data.priority,
+        category=ticket_data.category,
+        assignment_group=ticket_data.assignment_group,
         created_by=current_user.id,
         department_id=current_user.department_id,
         sla_due_at=sla_due_at
@@ -168,8 +170,8 @@ def get_all_tickets(
         else:
             query = query.order_by(priority_order.asc())
 
-        else:
-            sort_column = getattr(Ticket, sort_by)
+    else:
+        sort_column = getattr(Ticket, sort_by)
 
         if sort_order == "desc":
             query = query.order_by(sort_column.desc())
@@ -185,18 +187,18 @@ def get_all_tickets(
 
     return tickets
 
-    # --------------------------------------------------
-    # Update ticket status
-    # Only IT staff and IT admins can update tickets
-    # PATCH /tickets/{ticket_id}/status
-    # --------------------------------------------------
+# --------------------------------------------------
+# Update ticket status
+# Only IT staff and IT admins can update tickets
+# PATCH /tickets/{ticket_id}/status
+# --------------------------------------------------
 @router.patch("/{ticket_id}/status", response_model=TicketResponse)
-    def update_ticket_status(
-        ticket_id: int,
-        status_update: TicketStatusUpdate,
-        db: Session = Depends(get_db),
-        _current_user: User = Depends(require_it_staff_or_admin)
-    ):
+def update_ticket_status(
+    ticket_id: int,
+    status_update: TicketStatusUpdate,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(require_it_staff_or_admin)
+):
 
     # Find ticket by ID
     ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()

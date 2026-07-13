@@ -10,6 +10,10 @@ import {
   Building2,
   Users,
   Settings,
+  ShieldCheck,
+  Package,
+  ChartColumn,
+  BookOpen,
 } from "lucide-react";
 
 import { Link } from "react-router-dom";
@@ -28,8 +32,13 @@ const navItems = [
     icon: Ticket,
   },
   {
-    label: "Departments",
-    path: "/departments",
+    label: "Assets",
+    path: "/assets",
+    icon: Package,
+  },
+  {
+    label: "Organization",
+    path: "/organization",
     icon: Building2,
   },
   {
@@ -38,15 +47,30 @@ const navItems = [
     icon: Users,
   },
   {
+    label: "Reports",
+    path: "/reports",
+    icon: ChartColumn,
+  },
+  {
+    label: "Knowledge Base",
+    path: "/knowledge",
+    icon: BookOpen,
+  },
+  {
+    label: "Administration",
+    path: "/administration",
+    icon: ShieldCheck,
+  },
+  {
     label: "Settings",
     path: "/settings",
     icon: Settings,
-  },
+  }
 ];
 
 function Sidebar() {
   return (
-    <aside className="hidden min-h-screen w-72 border-r bg-white px-5 py-6 lg:block">
+    <aside className="hidden min-h-screen w-64 border-r bg-white px-5 py-6 lg:block">
       {/* App logo */}
       <Logo />
 

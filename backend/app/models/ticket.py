@@ -38,6 +38,24 @@ class Ticket(Base):
     # low, medium, high
     priority = Column(String, default="medium")
 
+    # Ticket category
+    # Example: 
+    # Equipment, Applications, Onboarding, Offboarding, General Request etc
+    category_id = Column(
+        Integer,
+        ForeignKey("categories.id"),
+        nullable=True
+    )
+
+    # Assignment group responsible for the ticket
+    # Example:
+    # Help Desk, Clinical Application, etc
+    assignment_group_id = Column(
+        Integer,
+        ForeignKey("assignment_groups.id"),
+        nullable=True
+    )
+
     # Ticket status
     # Example:
     # open, in_progress, resolved

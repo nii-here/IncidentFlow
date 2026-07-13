@@ -1,7 +1,11 @@
 // ------------------------------------------------------------
 // AppLayout
-// This layout wraps the logged-in part of the application.
-// It gives every protected page the same sidebar and header.
+// This layout wraps every protected page.
+//
+// It gives the app:
+// • Sidebar
+// • Header
+// • Main content area
 // ------------------------------------------------------------
 
 import { Outlet } from "react-router-dom";
@@ -12,16 +16,16 @@ import Header from "@/components/layout/Header";
 function AppLayout() {
   return (
     <div className="min-h-screen bg-slate-100">
-      <div className="flex">
-        {/* Left navigation */}
+      <div className="flex min-h-screen">
+        {/* Left sidebar navigation */}
         <Sidebar />
 
-        {/* Main app area */}
+        {/* Right side of the app */}
         <div className="flex min-h-screen flex-1 flex-col">
           <Header />
 
-          {/* Page content changes here based on the route */}
-          <main className="flex-1 p-6">
+          {/* Page content area */}
+          <main className="mx-auto w-full max-w-7xl flex-1 px-8 py-8">
             <Outlet />
           </main>
         </div>

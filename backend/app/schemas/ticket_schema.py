@@ -23,6 +23,12 @@ class TicketCreate(BaseModel):
     # low = not urgent, medium = normal priority, high = urgent issue
     priority: Literal["low", "medium", "high"]
 
+    # Ticket category
+    category: str | None = None
+
+    # Assignment group responsible for this ticket
+    assignment_group: str | None = None
+
 
 # --------------------------------------------------
 # Schema used when returning ticket data
@@ -58,6 +64,12 @@ class TicketResponse(BaseModel):
 
     # SLA deadline for resolving the ticket
     sla_due_at: datetime | None
+
+    # Ticket category
+    category: str | None 
+
+    # Assignment group responsible for this ticket
+    assignment_group: str | None
 
 
     # --------------------------------------------------

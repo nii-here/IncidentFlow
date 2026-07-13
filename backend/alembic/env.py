@@ -31,6 +31,8 @@ from app.models.ticket import Ticket
 from app.models.ticket_comment import TicketComment
 from app.models.ticket_history import TicketHistory
 from app.models.department import Department
+from app.models.category import Category
+from app.models.assignment_group import AssignmentGroup
 
 load_dotenv()
 
