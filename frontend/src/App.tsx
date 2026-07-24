@@ -12,6 +12,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import TicketsPage from "./pages/TicketsPage";
 import AdministrationPage from "./pages/AdministrationPage";
 import CategoriesPage from "./pages/CategoriesPage";
+import AssignmentGroupsPage from "./pages/AssignmentGroupsPage";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
             <Route path="tickets" element={<TicketsPage />} />
             <Route path="administration" element={<AdministrationPage />} />
             <Route path="administration/categories" element={<CategoriesPage />} />
+            <Route path="administration/assignment-groups" element={<AssignmentGroupsPage />}/>
           </Route>
         </Route>
       </Routes>

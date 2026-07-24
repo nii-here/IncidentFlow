@@ -14,7 +14,7 @@ from app.models.department import Department
 from app.schemas.department_schema import DepartmentCreate, DepartmentResponse
 
 # Admin-only permission helper
-from app.routes.auth import require_it_admin
+from app.security.permissions import require_it_admin
 
 # User model for type hinting
 from app.models.user import User

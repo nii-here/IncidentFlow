@@ -27,7 +27,12 @@ from app.schemas.ticket_schema import (
 )
 
 # Current logged-in user helper
-from app.routes.auth import get_current_user, require_it_staff_or_admin, require_it_admin
+from app.security.jwt import get_current_user
+
+from app.security.permissions import (
+    require_it_staff_or_admin,
+    require_it_admin,
+)
 
 # User model
 from app.models.user import User

@@ -1,7 +1,7 @@
 # app/routes/categories.py
 
 # FastAPI tools
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 # Database session
 from sqlalchemy.orm import Session
@@ -11,69 +11,106 @@ from app.database.db import get_db
 
 # Category model and schemas
 from app.models.category import Category
-from app.schemas.category_schema import CategoryCreate, CategoryResponse, CategoryUpdate
+from app.schemas.category_schema import (
+    CategoryCreate,
+    CategoryResponse,
+    CategoryUpdate,
+)
 
-# Auth helpers
-from app.routes.auth import require_it_admin, get_current_user
+# Authentication helpers
+from app.security.jwt import get_current_user
+
+from app.security.permissions import require_it_admin
+
+# Shared administration service helpers
+from app.services.admin_entity_service import (
+    apply_schema_updates,
+    archive_record,
+    commit_and_refresh,
+    ensure_unique_name,
+    get_record_or_404,
+    restore_record,
+    set_record_status,
+)
 
 # User model
 from app.models.user import User
 
 
+# --------------------------------------------------
+# Category router
+# --------------------------------------------------
 router = APIRouter(
     prefix="/categories",
-    tags=["Categories"]
+    tags=["Categories"],
 )
 
 
+# --------------------------------------------------
+# Create a category
+#
+# Only IT admins can create categories.
+# --------------------------------------------------
 @router.post("/", response_model=CategoryResponse)
 def create_category(
     category_data: CategoryCreate,
     db: Session = Depends(get_db),
-    _current_user: User = Depends(require_it_admin)
+    _current_user: User = Depends(require_it_admin),
 ):
-    # Check if category name already exists
-    existing_category = db.query(Category).filter(
-        Category.name == category_data.name
-    ).first()
-
-    if existing_category:
-        raise HTTPException(
-            status_code=400,
-            detail="Category already exists"
-        )
-
-    # Create category
-    new_category = Category(
+    # Prevent duplicate names, including differences
+    # in capitalization such as "Hardware" and "hardware".
+    ensure_unique_name(
+        db=db,
+        model=Category,
         name=category_data.name,
+        error_detail="Category already exists",
+    )
+
+    # Create the new category record
+    new_category = Category(
+        name=category_data.name.strip(),
         description=category_data.description,
         icon=category_data.icon,
         color=category_data.color,
-        display_order=category_data.display_order
+        display_order=category_data.display_order,
     )
 
     db.add(new_category)
-    db.commit()
-    db.refresh(new_category)
 
-    return new_category
+    return commit_and_refresh(
+        db=db,
+        record=new_category,
+    )
 
 
+# --------------------------------------------------
+# Get normal categories
+#
+# Archived categories are excluded.
+# Any logged-in user can view this list.
+# --------------------------------------------------
 @router.get("/", response_model=list[CategoryResponse])
 def get_categories(
     db: Session = Depends(get_db),
-    _current_user: User = Depends(get_current_user)
+    _current_user: User = Depends(get_current_user),
 ):
-    # Return only active categories
     categories = (
         db.query(Category)
         .filter(Category.archived_at.is_(None))
         .order_by(Category.display_order.asc())
         .all()
     )
+
     return categories
 
-@router.get("/archived", response_model=list[CategoryResponse])
+
+# --------------------------------------------------
+# Get archived categories
+# --------------------------------------------------
+@router.get(
+    "/archived",
+    response_model=list[CategoryResponse],
+)
 def get_archived_categories(
     db: Session = Depends(get_db),
     _current_user: User = Depends(get_current_user),
@@ -87,123 +124,128 @@ def get_archived_categories(
 
     return categories
 
-@router.put("/{category_id}", response_model=CategoryResponse)
+
+# --------------------------------------------------
+# Update a category
+#
+# Only IT admins can update categories.
+# --------------------------------------------------
+@router.put(
+    "/{category_id}",
+    response_model=CategoryResponse,
+)
 def update_category(
     category_id: int,
     category_data: CategoryUpdate,
     db: Session = Depends(get_db),
     _current_user: User = Depends(require_it_admin),
 ):
-    category = (
-        db.query(Category)
-        .filter(Category.id == category_id)
-        .first()
+    category = get_record_or_404(
+        db=db,
+        model=Category,
+        record_id=category_id,
+        error_detail="Category not found.",
     )
 
-    if not category:
-        raise HTTPException(
-            status_code=404,
-            detail="Category not found.",
+    # Only check for a duplicate when the request
+    # includes a new category name.
+    if category_data.name is not None:
+        ensure_unique_name(
+            db=db,
+            model=Category,
+            name=category_data.name,
+            exclude_id=category.id,
+            error_detail="Category already exists",
         )
 
-    update_data = category_data.model_dump(exclude_unset=True)
+    apply_schema_updates(
+        record=category,
+        update_schema=category_data,
+    )
 
-    for key, value in update_data.items():
-        setattr(category, key, value)
+    return commit_and_refresh(
+        db=db,
+        record=category,
+    )
 
-    db.commit()
-    db.refresh(category)
-
-    return category
 
 # --------------------------------------------------
 # Activate or deactivate a category
-# Only IT admins can change category status
-# PATCH /categories/{category_id}/status
+#
+# PATCH /categories/{category_id}/status?active=true
 # --------------------------------------------------
-@router.patch("/{category_id}/status", response_model=CategoryResponse)
+@router.patch(
+    "/{category_id}/status",
+    response_model=CategoryResponse,
+)
 def update_category_status(
     category_id: int,
     active: bool,
     db: Session = Depends(get_db),
     _current_user: User = Depends(require_it_admin),
 ):
-    # Find the category
-    category = db.query(Category).filter(
-        Category.id == category_id
-    ).first()
+    category = get_record_or_404(
+        db=db,
+        model=Category,
+        record_id=category_id,
+        error_detail="Category not found",
+    )
 
-    # Return an error if it does not exist
-    if not category:
-        raise HTTPException(
-            status_code=404,
-            detail="Category not found"
-        )
+    return set_record_status(
+        db=db,
+        record=category,
+        active=active,
+    )
 
-    # Update active status
-    category.active = active
-
-    # Save changes
-    db.commit()
-    db.refresh(category)
-
-    return category
 
 # --------------------------------------------------
 # Archive a category
 #
-# Archived categories are hidden from normal lists,
-# but remain in the database for historical records.
+# The category remains in the database so older
+# tickets can continue referencing it.
 # --------------------------------------------------
-from datetime import datetime
-
-
-@router.patch("/{category_id}/archive", response_model=CategoryResponse)
+@router.patch(
+    "/{category_id}/archive",
+    response_model=CategoryResponse,
+)
 def archive_category(
     category_id: int,
     db: Session = Depends(get_db),
     _current_user: User = Depends(require_it_admin),
 ):
-    category = (
-        db.query(Category)
-        .filter(Category.id == category_id)
-        .first()
+    category = get_record_or_404(
+        db=db,
+        model=Category,
+        record_id=category_id,
+        error_detail="Category not found.",
     )
 
-    if not category:
-        raise HTTPException(
-            status_code=404,
-            detail="Category not found."
-        )
+    return archive_record(
+        db=db,
+        record=category,
+    )
 
-    category.archived_at = datetime.utcnow()
 
-    db.commit()
-    db.refresh(category)
-
-    return category
-
-@router.patch("/{category_id}/restore", response_model=CategoryResponse)
+# --------------------------------------------------
+# Restore an archived category
+# --------------------------------------------------
+@router.patch(
+    "/{category_id}/restore",
+    response_model=CategoryResponse,
+)
 def restore_category(
     category_id: int,
     db: Session = Depends(get_db),
     _current_user: User = Depends(require_it_admin),
 ):
-    category = (
-        db.query(Category)
-        .filter(Category.id == category_id)
-        .first()
+    category = get_record_or_404(
+        db=db,
+        model=Category,
+        record_id=category_id,
+        error_detail="Category not found.",
     )
 
-    if not category:
-        raise HTTPException(
-            status_code=404,
-            detail="Category not found.",
-        )
-
-    category.archived_at = None
-
-    db.commit()
-    db.refresh(category)
-
-    return category
+    return restore_record(
+        db=db,
+        record=category,
+    )

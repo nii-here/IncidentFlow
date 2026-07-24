@@ -12,7 +12,7 @@ from app.models.ticket import Ticket
 from app.models.ticket_comment import TicketComment
 
 # Import authentication routes
-from app.routes import auth, tickets, departments, categories, assignment_groups 
+from app.routes import auth, tickets, departments, categories, assignment_groups, users 
 
 # Import ticket history model for audit trail table creation
 from app.models.ticket_history import TicketHistory
@@ -59,6 +59,7 @@ app.include_router(tickets.router)
 app.include_router(departments.router)
 app.include_router(categories.router)
 app.include_router(assignment_groups.router)
+app.include_router(users.router)
 
 # --------------------------------------------------
 # Root route
