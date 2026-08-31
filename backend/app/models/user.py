@@ -69,6 +69,18 @@ class User(Base):
     # Organization information
     # --------------------------------------------------
 
+    # Person record connected to this login account
+    #
+    # A Person can exist without a User account,
+    # but a User account can be linked to a Person.
+    person_id = Column(
+        Integer,
+        ForeignKey("people.id"),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
+
     # Optional job title
     #
     # Examples:

@@ -101,6 +101,18 @@ class Ticket(Base):
     # Ownership and assignment
     # --------------------------------------------------
 
+    # User who needs support
+    #
+    # This may be different from the person who created
+    # the ticket. For example, an IT technician may create
+    # a ticket on behalf of another employee.
+    requester_id = Column(
+        Integer,
+        ForeignKey("people.id"),
+        nullable=False,
+        index=True,
+    )
+
     # User who originally submitted the ticket
     created_by = Column(
         Integer,
@@ -131,6 +143,18 @@ class Ticket(Base):
 
     # Deadline by which the ticket should be resolved
     sla_due_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
+    
+    sla_completed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
+
+    sla_breached_at = Column(
         DateTime(timezone=True),
         nullable=True,
         index=True,

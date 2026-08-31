@@ -22,3 +22,19 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+venv/
+.venv/
+
+# Environment files
+.env
+.env.*
+
+# IncidentFlow runtime storage
+# Ticket attachments/uploads should never be committed to Git.
+backend/storage/

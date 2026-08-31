@@ -21,6 +21,7 @@ from app.models.user import User
 # --------------------------------------------------
 from app.schemas.user_schema import (
     UserAdminCreate,
+    UserRequesterResponse,
     UserResponse,
     UserUpdate,
 )
@@ -30,7 +31,10 @@ from app.schemas.user_schema import (
 # --------------------------------------------------
 from app.security.jwt import get_current_user
 
-from app.security.permissions import require_it_admin
+from app.security.permissions import (
+    require_it_admin,
+    require_it_staff_or_admin,
+)
 
 # --------------------------------------------------
 # Shared administration helpers
@@ -156,6 +160,68 @@ def get_archived_users(
 
     return users
 
+# --------------------------------------------------
+# Get users available as ticket requesters
+#
+# Used by IT staff/admins when creating a ticket
+# on behalf of another employee.
+#
+# Only active, non-archived users are returned.
+# --------------------------------------------------
+@router.get(
+    "/requesters",
+    response_model=list[UserRequesterResponse],
+)
+def get_requesters(
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(require_it_staff_or_admin),
+):
+    users = (
+        db.query(User)
+        .filter(
+            User.archived_at.is_(None),
+            User.active.is_(True),
+        )
+        .order_by(User.name.asc())
+        .all()
+    )
+
+    return users
+
+# --------------------------------------------------
+# Get users available as ticket technicians
+#
+# Only active, non-archived IT staff and IT admins
+# are returned.
+#
+# GET /users/technicians
+# --------------------------------------------------
+
+@router.get(
+    "/technicians",
+    response_model=list[UserRequesterResponse],
+)
+def get_technicians(
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(require_it_staff_or_admin),
+):
+    users = (
+        db.query(User)
+        .filter(
+            User.archived_at.is_(None),
+            User.active.is_(True),
+            User.role.in_(
+                [
+                    "it_staff",
+                    "it_admin",
+                ]
+            ),
+        )
+        .order_by(User.name.asc())
+        .all()
+    )
+
+    return users
 
 # --------------------------------------------------
 # Get one user by ID

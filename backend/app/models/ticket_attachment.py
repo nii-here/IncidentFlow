@@ -1,17 +1,17 @@
-# app/models/ticket_comment.py
+# app/models/ticket_attachment.py
 
 # --------------------------------------------------
 # SQLAlchemy imports
 # --------------------------------------------------
 
 from sqlalchemy import (
-    CheckConstraint,
     Column,
     DateTime,
     ForeignKey,
     Integer,
     String,
-    Text,
+    BigInteger,
+    CheckConstraint,
     func,
 )
 
@@ -23,41 +23,34 @@ from app.database.db import Base
 
 
 # --------------------------------------------------
-# Ticket Comment database table
+# Ticket Attachment
 #
-# Stores conversation entries on support tickets.
+# Stores metadata about files attached to tickets
+# or conversation entries.
 #
-# A conversation entry can come from:
-# - an IncidentFlow user
-# - a requester/person
-# - a system-generated event
-#
-# This structure also prepares us for future
-# portal and email replies.
+# IMPORTANT:
+# The actual file contents are NOT stored in this
+# table. The database only stores metadata and the
+# private storage location/key.
 # --------------------------------------------------
 
-class TicketComment(Base):
+class TicketAttachment(Base):
 
-    # SQL table name
-    __tablename__ = "ticket_comments"
+    __tablename__ = "ticket_attachments"
 
 
     # --------------------------------------------------
-    # Database-level validation
+    # Database validation
     # --------------------------------------------------
 
     __table_args__ = (
         CheckConstraint(
-            "visibility IN ('internal', 'public')",
-            name="ck_ticket_comments_visibility",
+            "file_size >= 0",
+            name="ck_ticket_attachments_file_size",
         ),
         CheckConstraint(
-            "source IN ('portal', 'email', 'system')",
-            name="ck_ticket_comments_source",
-        ),
-        CheckConstraint(
-            "NOT (user_id IS NOT NULL AND person_id IS NOT NULL)",
-            name="ck_ticket_comments_single_author",
+            "NOT (uploaded_by IS NOT NULL AND person_id IS NOT NULL)",
+            name="ck_ticket_attachments_single_uploader",
         ),
     )
 
@@ -86,19 +79,33 @@ class TicketComment(Base):
 
 
     # --------------------------------------------------
-    # Author
+    # Optional conversation relationship
     #
-    # user_id:
-    # IncidentFlow user such as IT staff/admin.
+    # If the file was uploaded with a comment/reply,
+    # this points to that conversation entry.
     #
-    # person_id:
-    # Requester who may not have a login account.
-    #
-    # Both are nullable because system-generated
-    # timeline entries may have no human author.
+    # Null means the file belongs directly to the ticket.
     # --------------------------------------------------
 
-    user_id = Column(
+    comment_id = Column(
+        Integer,
+        ForeignKey("ticket_comments.id"),
+        nullable=True,
+        index=True,
+    )
+
+
+    # --------------------------------------------------
+    # Uploader
+    #
+    # uploaded_by:
+    # IncidentFlow account such as IT staff/admin.
+    #
+    # person_id:
+    # Future requester/contact uploads.
+    # --------------------------------------------------
+
+    uploaded_by = Column(
         Integer,
         ForeignKey("users.id"),
         nullable=True,
@@ -114,54 +121,54 @@ class TicketComment(Base):
 
 
     # --------------------------------------------------
-    # Conversation content
+    # Original file information
     # --------------------------------------------------
 
-    comment = Column(
-        Text,
+    original_filename = Column(
+        String,
+        nullable=False,
+    )
+
+    # Internal generated filename.
+    #
+    # We do not trust the user's original filename
+    # as the physical storage filename.
+    stored_filename = Column(
+        String,
+        nullable=False,
+        unique=True,
+    )
+
+    # Examples:
+    # image/png
+    # application/pdf
+    # text/plain
+    content_type = Column(
+        String,
+        nullable=False,
+    )
+
+    # File size in bytes
+    file_size = Column(
+        BigInteger,
         nullable=False,
     )
 
 
     # --------------------------------------------------
-    # Visibility
+    # Private storage key
     #
-    # internal:
-    # Only IT staff/admins should see this note.
+    # Example:
     #
-    # public:
-    # Can be shown to the requester.
+    # tickets/3/attachments/uuid-file.png
     #
-    # We default to INTERNAL on purpose.
-    # That is the safer security default.
+    # This is NOT a public URL.
     # --------------------------------------------------
 
-    visibility = Column(
+    storage_key = Column(
         String,
         nullable=False,
-        default="internal",
-        server_default="internal",
-    )
-
-
-    # --------------------------------------------------
-    # Source
-    #
-    # portal:
-    # Written through IncidentFlow.
-    #
-    # email:
-    # Received through future email integration.
-    #
-    # system:
-    # Generated automatically by IncidentFlow.
-    # --------------------------------------------------
-
-    source = Column(
-        String,
-        nullable=False,
-        default="portal",
-        server_default="portal",
+        unique=True,
     )
 
 

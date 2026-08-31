@@ -15,4 +15,5 @@ export type TicketMetrics = {
   medium_priority_tickets: number;
   low_priority_tickets: number;
   overdue_tickets: number;
+  unassigned_tickets: number;
 };

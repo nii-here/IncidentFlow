@@ -1,96 +1,299 @@
 // ----------------------------------------------------------------
 // Login Page
-// This page lets users log in with email and password.
-// It sends the login request to the FastAPI backend.
+//
+// Allows users to sign in to IncidentFlow.
+//
+// Login flow:
+//
+// 1. Send email/password to FastAPI.
+// 2. Receive JWT access token.
+// 3. AuthContext saves the token.
+// 4. AuthContext loads GET /auth/me.
+// 5. Only after the current user is loaded do we navigate
+//    into the protected application.
 // ----------------------------------------------------------------
 
-import { useAuth } from "../context/AuthContext";
-import { useState, type SubmitEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import {
+  useState,
+  type SubmitEvent,
+} from "react";
+
+import {
+  useNavigate,
+} from "react-router-dom";
+
+import {
+  useAuth,
+} from "../context/AuthContext";
 
 import api from "../services/api";
 
+
+// ============================================================
+// LOGIN PAGE
+// ============================================================
+
 function LoginPage() {
-  // Gives us access to the global login function
-  const { login } = useAuth();
 
-  // Stores what the user types into the email box
-  const [email, setEmail] = useState("");
+  // ----------------------------------------------------------
+  // Global authentication
+  // ----------------------------------------------------------
 
-  // Stores what the user types into the password box
-  const [password, setPassword] = useState("");
+  const {
+    login,
+  } = useAuth();
 
-  // Stores error messages if login fails
-  const [error, setError] = useState("");
 
-  // Lets us move the user to another page after login
-  const navigate = useNavigate();
+  // ----------------------------------------------------------
+  // Form values
+  // ----------------------------------------------------------
 
-  async function handleLogin(event: SubmitEvent<HTMLFormElement>) {
+  const [
+    email,
+    setEmail,
+  ] = useState("");
+
+
+  const [
+    password,
+    setPassword,
+  ] = useState("");
+
+
+  // ----------------------------------------------------------
+  // Error message
+  // ----------------------------------------------------------
+
+  const [
+    error,
+    setError,
+  ] = useState("");
+
+
+  // ----------------------------------------------------------
+  // Prevent multiple login requests while signing in
+  // ----------------------------------------------------------
+
+  const [
+    isSubmitting,
+    setIsSubmitting,
+  ] = useState(false);
+
+
+  // ----------------------------------------------------------
+  // Navigation
+  // ----------------------------------------------------------
+
+  const navigate =
+    useNavigate();
+
+
+  // ==========================================================
+  // LOGIN
+  // ==========================================================
+
+  async function handleLogin(
+    event: SubmitEvent<HTMLFormElement>
+  ) {
+
     event.preventDefault();
+
+
+    if (isSubmitting) {
+      return;
+    }
+
 
     setError("");
 
+    setIsSubmitting(true);
+
+
     try {
-      // FastAPI OAuth2 login expects form data, not JSON
-      const formData = new URLSearchParams();
-      formData.append("username", email);
-      formData.append("password", password);
 
-      const response = await api.post("/auth/login", formData, {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      });
+      // ------------------------------------------------------
+      // FastAPI OAuth2PasswordRequestForm expects form data.
+      //
+      // The backend calls the field "username", but
+      // IncidentFlow treats it as the user's email.
+      // ------------------------------------------------------
 
-      console.log("LOGIN RESPONSE:", response.data);
-      // Save JWT token in browser storage
-      login(response.data.access_token);
+      const formData =
+        new URLSearchParams();
 
-      // Send user to dashboard
-      navigate("/");
-    } catch {
-      setError("Invalid email or password");
+
+      formData.append(
+        "username",
+        email
+      );
+
+
+      formData.append(
+        "password",
+        password
+      );
+
+
+      // ------------------------------------------------------
+      // Authenticate with backend
+      // ------------------------------------------------------
+
+      const response =
+        await api.post(
+          "/auth/login",
+          formData,
+          {
+            headers: {
+              "Content-Type":
+                "application/x-www-form-urlencoded",
+            },
+          }
+        );
+
+
+      // ------------------------------------------------------
+      // IMPORTANT:
+      //
+      // Wait for AuthContext to:
+      //
+      // - save the token
+      // - call /auth/me
+      // - load the real user
+      //
+      // before navigating.
+      //
+      // Without await, the app can navigate while user is
+      // still null, which caused the login-twice behavior.
+      // ------------------------------------------------------
+
+      await login(
+        response.data.access_token
+      );
+
+
+      // ------------------------------------------------------
+      // Authentication is now fully ready
+      // ------------------------------------------------------
+
+      navigate(
+        "/",
+        {
+          replace: true,
+        }
+      );
+
+    } catch (loginError) {
+
+      console.error(
+        "Login failed.",
+        loginError
+      );
+
+
+      setError(
+        "Invalid email or password"
+      );
+
+    } finally {
+
+      setIsSubmitting(false);
     }
   }
 
+
+  // ==========================================================
+  // PAGE
+  // ==========================================================
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
+
       <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-lg">
-        <h1 className="text-3xl font-bold text-slate-900">IncidentFlow</h1>
+
+        <h1 className="text-3xl font-bold text-slate-900">
+          IncidentFlow
+        </h1>
+
 
         <p className="mt-2 text-slate-500">
           Sign in to manage IT support tickets.
         </p>
 
-        <form onSubmit={handleLogin} className="mt-6 space-y-4">
+
+        <form
+          onSubmit={
+            handleLogin
+          }
+          className="mt-6 space-y-4"
+        >
+
+          {/* ------------------------------------------------
+              EMAIL
+          ------------------------------------------------ */}
+
           <div>
+
             <label className="text-sm font-medium text-slate-700">
               Email
             </label>
 
+
             <input
               className="mt-1 w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
               type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="clement@test.com"
+              value={
+                email
+              }
+              onChange={(
+                event
+              ) =>
+                setEmail(
+                  event.target.value
+                )
+              }
+              placeholder="you@example.com"
+              autoComplete="email"
+              required
             />
+
           </div>
 
+
+          {/* ------------------------------------------------
+              PASSWORD
+          ------------------------------------------------ */}
+
           <div>
+
             <label className="text-sm font-medium text-slate-700">
               Password
             </label>
 
+
             <input
               className="mt-1 w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
               type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="password123"
+              value={
+                password
+              }
+              onChange={(
+                event
+              ) =>
+                setPassword(
+                  event.target.value
+                )
+              }
+              placeholder="Enter your password"
+              autoComplete="current-password"
+              required
             />
+
           </div>
+
+
+          {/* ------------------------------------------------
+              ERROR
+          ------------------------------------------------ */}
 
           {error && (
             <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
@@ -98,16 +301,32 @@ function LoginPage() {
             </p>
           )}
 
+
+          {/* ------------------------------------------------
+              SUBMIT
+          ------------------------------------------------ */}
+
           <button
             type="submit"
-            className="w-full rounded-lg bg-blue-600 py-2 font-medium text-white hover:bg-blue-700"
+            disabled={
+              isSubmitting
+            }
+            className="w-full rounded-lg bg-blue-600 py-2 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Sign In
+
+            {isSubmitting
+              ? "Signing in..."
+              : "Sign In"}
+
           </button>
+
         </form>
+
       </div>
+
     </div>
   );
 }
+
 
 export default LoginPage;

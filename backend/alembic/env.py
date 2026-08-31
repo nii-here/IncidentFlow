@@ -33,6 +33,10 @@ from app.models.ticket_history import TicketHistory
 from app.models.department import Department
 from app.models.category import Category
 from app.models.assignment_group import AssignmentGroup
+from app.models.assignment_group_member import AssignmentGroupMember
+from app.models.person import Person
+from app.models.ticket_attachment import TicketAttachment
+from app.models.organization_setting import OrganizationSetting
 
 load_dotenv()
 

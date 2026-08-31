@@ -174,3 +174,19 @@ class UserAdminUpdate(BaseModel):
     # Null can mean no department, but the existing
     # auth route currently does not support clearing it.
     department_id: int | None = None
+
+# --------------------------------------------------
+# Lightweight user information used when selecting
+# a requester for a support ticket.
+#
+# We intentionally return only the information
+# needed by the ticket form.
+# --------------------------------------------------
+class UserRequesterResponse(BaseModel):
+    id: int
+    name: str
+    email: EmailStr
+    department_id: int | None
+
+    class Config:
+        from_attributes = True
